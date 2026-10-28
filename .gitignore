@@ -1,0 +1,16 @@
+﻿# Local editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.user
+*.suo
+
+# Local database exports/backups (do not commit production data)
+*.bak
+*.mdf
+*.ldf
+
+# Temporary files
+*.tmp
+*.log
