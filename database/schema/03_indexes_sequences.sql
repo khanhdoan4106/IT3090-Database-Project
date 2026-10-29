@@ -26,14 +26,17 @@ GO
 CREATE UNIQUE INDEX uix_HanhKhach_SoCCCD
     ON HanhKhach(SoCCCD) WHERE SoCCCD IS NOT NULL;
 
--- A top-up can be refunded at most once.
+-- A top-up is refunded at most once; a balance transfer is received once.
 CREATE UNIQUE INDEX uix_GiaoDich_MaGiaoDichGoc
     ON GiaoDich(MaGiaoDichGoc) WHERE MaGiaoDichGoc IS NOT NULL;
 
--- A card has at most one metro journey that has not been tapped out.
-CREATE UNIQUE INDEX uix_LuotQuetThe_MetroDangMo
-    ON LuotQuetThe(MaTheDienTu)
-    WHERE LoaiPhuongTien = 'METRO' AND MaTramQuetRa IS NULL;
+-- A card is replaced at most once.
+CREATE UNIQUE INDEX uix_TheVeDienTu_MaTheCu
+    ON TheVeDienTu(MaTheCu) WHERE MaTheCu IS NOT NULL;
+
+-- A card has at most one metro journey in progress.
+CREATE UNIQUE INDEX uix_LuotQuetThe_DangDi
+    ON LuotQuetThe(MaTheDienTu) WHERE TrangThai = 'DANG_DI';
 
 -- A card is scanned at most once per bus trip.
 CREATE UNIQUE INDEX uix_LuotQuetThe_The_Chuyen
@@ -53,4 +56,8 @@ CREATE INDEX ix_TuyenTram_Tram ON TuyenTram(MaTram);
 
 -- Ridership reports by route and by period.
 CREATE INDEX ix_LuotQuetThe_Tuyen_ThoiDiem ON LuotQuetThe(MaTuyen, ThoiDiemQuetVao);
+
+-- Nightly closing of journeys that were never tapped out.
+CREATE INDEX ix_LuotQuetThe_DangDi_ThoiDiem
+    ON LuotQuetThe(ThoiDiemQuetVao) WHERE TrangThai = 'DANG_DI';
 GO

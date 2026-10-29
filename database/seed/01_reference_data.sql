@@ -1,11 +1,11 @@
 /* =====================================================================
    01_reference_data.sql
-   Reference data: card products, fares, stations, routes, buses, staff,
-   timetable, bus trips and passengers.
+   Reference data: card products, fares, passenger-category discounts,
+   stations, routes, buses, staff, timetable, bus trips and passengers.
 
    Sample data for development and testing. Metro stations follow lines 2A
    (Cát Linh – Hà Đông) and 3 (elevated section Nhổn – Cầu Giấy); bus
-   routes, stops, prices, people and documents are illustrative.
+   routes, stops, prices, discounts, people and documents are illustrative.
    ===================================================================== */
 
 USE QuanLyTheVeDienTu;
@@ -119,6 +119,12 @@ INSERT INTO ChuyenXe(MaChuyen, NgayChay, TrangThai, MaLich, MaXe, MaTaiXe, MaPhu
 ('CX20261029003', '20261029', 'DANG_CHAY', 'L09D0630', 'XB03', 'NV03', 'NV06');
 
 /* ---------- Passengers ---------- */
+
+-- Discounts in percent: on each ride paid from the wallet, and on monthly passes.
+INSERT INTO UuDaiDoiTuong(NhomDoiTuong, TenNhom, PhanTramGiamVeLuot, PhanTramGiamGoiThang) VALUES
+('TIEU_CHUAN',     N'Tiêu chuẩn',        0,  0),
+('HSSV',           N'Học sinh, sinh viên', 0,  50),
+('NGUOI_CAO_TUOI', N'Người cao tuổi',    50, 50);
 
 INSERT INTO HanhKhach(MaHanhKhach, HoTen, SoCCCD, SoDienThoai, NhomDoiTuong) VALUES
 ('HK001', N'Nguyễn Minh Anh',  '001205000001', '0987000001', 'HSSV'),

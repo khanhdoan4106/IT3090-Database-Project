@@ -15,11 +15,15 @@
 :r "$(root)\schema\01_create_database.sql"
 :r "$(root)\schema\02_tables.sql"
 :r "$(root)\schema\03_indexes_sequences.sql"
+:r "$(root)\schema\04_triggers.sql"
 
 :r "$(root)\procedures\01_functions.sql"
 :r "$(root)\procedures\02_the.sql"
 :r "$(root)\procedures\03_giao_dich.sql"
 :r "$(root)\procedures\04_quet_the.sql"
+:r "$(root)\procedures\05_van_hanh.sql"
+
+:r "$(root)\views\01_bao_cao.sql"
 
 :r "$(root)\seed\01_reference_data.sql"
 :r "$(root)\seed\02_demo_activity.sql"

@@ -73,7 +73,8 @@ END
 GO
 
 /* Buys one validity period of the card's pass product, paid by
-   @PhuongThucThanhToan (not from the wallet).
+   @PhuongThucThanhToan (not from the wallet). The price is the product's
+   GiaBan less the passenger category's monthly-pass discount.
    A pass still valid is extended from the day after it expires;
    an expired pass, or a card without a pass, starts today. */
 CREATE PROCEDURE dbo.usp_MuaGoiThang
@@ -96,14 +97,17 @@ BEGIN
         BEGIN TRANSACTION;
 
         DECLARE @BiKhoa smallint, @NgayHetHan date,
-                @GiaBan numeric(12,0), @SoNgayHieuLuc int;
+                @GiaBan numeric(12,0), @SoNgayHieuLuc int, @PhanTramGiam int;
 
         SELECT @BiKhoa        = t.BiKhoa,
                @NgayHetHan    = t.NgayHetHan,
                @GiaBan        = l.GiaBan,
-               @SoNgayHieuLuc = l.SoNgayHieuLuc
+               @SoNgayHieuLuc = l.SoNgayHieuLuc,
+               @PhanTramGiam  = u.PhanTramGiamGoiThang
         FROM   TheVeDienTu t WITH (UPDLOCK, HOLDLOCK)
-               INNER JOIN LoaiThe l ON l.MaLoaiThe = t.MaLoaiThe
+               INNER JOIN LoaiThe l       ON l.MaLoaiThe    = t.MaLoaiThe
+               INNER JOIN HanhKhach h     ON h.MaHanhKhach  = t.MaHanhKhach
+               INNER JOIN UuDaiDoiTuong u ON u.NhomDoiTuong = h.NhomDoiTuong
         WHERE  t.MaTheDienTu = @MaTheDienTu;
 
         IF @BiKhoa IS NULL
@@ -126,7 +130,7 @@ BEGIN
 
         INSERT INTO GiaoDich(MaGiaoDich, LoaiGiaoDich, SoTien, ThoiDiemGiaoDich,
                              PhuongThucThanhToan, MaTheDienTu, MaGiaoDichGoc)
-        VALUES (@MaGiaoDich, 'MUA_GOI_THANG', @GiaBan, @ThoiDiem,
+        VALUES (@MaGiaoDich, 'MUA_GOI_THANG', dbo.fn_GiamGia(@GiaBan, @PhanTramGiam), @ThoiDiem,
                 @PhuongThucThanhToan, @MaTheDienTu, NULL);
 
         UPDATE TheVeDienTu
