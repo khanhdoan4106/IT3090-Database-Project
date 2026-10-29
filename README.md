@@ -1,28 +1,30 @@
-﻿# IT3090 Database Project — Group 11
+﻿# IT3090 Database Project
 
-Database project for managing electronic transit cards for bus and metro services, implemented with Microsoft SQL Server.
+A SQL Server database for managing electronic transit cards on Hanoi's bus and metro network: passengers, card products, wallet top-ups, card validations, routes, stations and bus operations.
+
+The repository started as the coursework for IT3090 (Databases, HUST) and is being developed into a complete, business-oriented database project.
 
 ## Repository structure
 
-- `assignment/`: coursework deliverables, including the SQL script and the existing ERD/relational-schema diagrams.
-- `docs/`: project documentation for database design, data dictionary, and query catalog.
+| Path | Contents |
+|---|---|
+| [`agm/`](agm/) | Coursework assignment as submitted: SQL script, ERD, relational schema and query catalog. Kept unchanged as the graded version. |
+| [`lab/`](lab/) | In-class lab exercises (separate `QuanLyBongDa` database). |
+| [`database/`](database/) | The full project: schema, seed data, stored procedures, views and tests. |
+| [`docs/`](docs/) | Project documentation: design, data dictionary and roadmap. |
 
 ## Getting started
 
-1. Install Microsoft SQL Server and open SQL Server Management Studio (SSMS) or a compatible SQL client.
-2. Review `assignment/README.md` before running the coursework script.
-3. Open `assignment/sql/quan_ly_the_ve_sqlserver.sql` and execute it in a development/test SQL Server instance.
-4. Review the diagrams under `assignment/diagrams/`.
+Requirements: Microsoft SQL Server 2016 or later and SQL Server Management Studio (SSMS) or another SQL Server client.
 
-> **Important:** The SQL script creates a database named `QuanLyTheVe`. Review the script before execution and do not run it against an environment containing data you need to preserve.
+- **Coursework version:** open [`agm/sql/quan_ly_the_ve_sqlserver.sql`](agm/sql/quan_ly_the_ve_sqlserver.sql) and execute it. See [`agm/README.md`](agm/README.md).
+- **Project version:** under construction. The execution order will be documented in [`database/README.md`](database/README.md).
+
+> The scripts create a database named `QuanLyTheVe`. Run them only on a development or test SQL Server instance.
 
 ## Documentation
 
 - [Database design](docs/database-design.md)
 - [Data dictionary](docs/data-dictionary.md)
-- [Query catalog](docs/queries.md)
-- [Assignment files and execution notes](assignment/README.md)
-
-## Scope
-
-The current repository contains the database schema and coursework queries. Application code, automated test data, and deployment automation should only be added when the project actually needs them.
+- [Roadmap](docs/roadmap.md)
+- [Coursework query catalog](agm/queries.md)
