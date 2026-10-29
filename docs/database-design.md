@@ -1,4 +1,4 @@
-﻿# Database design
+# Database design
 
 ## Purpose
 
@@ -12,13 +12,14 @@ The database models electronic transit cards and their use across Hanoi's bus an
 - `TheVeDienTu`: an issued card, with its wallet balance, expiry date and lock status.
 
 ### Money and usage
-- `GiaoDich`: top-ups, monthly-pass purchases and refunds.
+- `GiaoDich`: top-ups, monthly-pass purchases and refunds; a refund references the top-up it refunds.
 - `LuotQuetThe`: one card scan, with entry station and time, exit station and time (metro only), amount charged, and the route and bus trip when known.
 
 ### Transport network
 - `Tram`: bus stop or metro station.
 - `Tuyen`: bus or metro route.
 - `TuyenTram`: stations on a route and their order.
+- `GiaVe`: fare rule per transport type (base fare, amount per station travelled, maximum).
 
 ### Bus operations
 - `LichChay`: recurring timetable entry for a route (direction, departure time, service days).
