@@ -1,41 +1,37 @@
-﻿# Database design overview
+﻿# Database design
 
 ## Purpose
 
-The database models electronic transit cards and their use across bus and metro services.
+The database models electronic transit cards and their use across Hanoi's bus and metro services: who holds a card, how money enters the card, and every time the card is scanned on a bus or at a metro gate.
 
-## Main entity groups
+## Entity groups
 
 ### Passengers and cards
-- `HanhKhach`: passenger identity and passenger category.
-- `LoaiThe`: card/product type.
-- `TheVeDienTu`: electronic card, balance, status, expiry, passenger and card type.
+- `HanhKhach`: passenger identity and passenger category (standard, student, senior).
+- `LoaiThe`: card product (single-ride wallet, monthly bus, monthly metro, combined pass) with its price and validity period.
+- `TheVeDienTu`: an issued card, with its wallet balance, expiry date and lock status.
 
-### Financial activity
-- `GiaoDich`: top-ups, monthly-package purchases and refunds.
-- `LuotQuetThe`: card validation/use event, including entry/exit station, time, charged amount, transport type and optional route/trip.
+### Money and usage
+- `GiaoDich`: top-ups, monthly-pass purchases and refunds.
+- `LuotQuetThe`: one card scan, with entry station and time, exit station and time (metro only), amount charged, and the route and bus trip when known.
 
 ### Transport network
-- `Tram`: station/stop.
-- `Tuyen`: route.
-- `TuyenTram`: ordered stops along a route.
-- `LichChay`: route direction and scheduled departure.
-- `ChuyenXe`: scheduled bus trip, vehicle and assigned staff.
+- `Tram`: bus stop or metro station.
+- `Tuyen`: bus or metro route.
+- `TuyenTram`: stations on a route and their order.
+
+### Bus operations
+- `LichChay`: recurring timetable entry for a route (direction, departure time, service days).
+- `ChuyenXe`: one actual bus run on a given day, with its bus, driver and attendant.
 - `XeBuyt`: bus fleet.
+- `NhanVien`: common staff data, specialised into `TaiXe` (driver, with licence details) and `PhuXe` (bus attendant).
 
-### Staff
-- `NhanVien`: common staff information.
-- `TaiXe`: driver-specific information.
-- `PhuXe`: bus-attendant specialization.
+## Design decisions
 
-## Design review notes
+- **Wallet and pass cards share one table.** `NgayHetHan` and `LoaiThe.SoNgayHieuLuc` are `NULL` for wallet cards, which do not expire.
+- **Only buses have trips.** A metro scan has no `MaChuyen`; this is enforced by `CHECK(LoaiPhuongTien = 'BUS' OR MaChuyen IS NULL)`.
+- **Metro scans record both entry and exit**, because metro fares depend on distance; bus scans record entry only. Exit station and exit time are either both present or both `NULL`.
+- **Timetable and actual run are separate.** `LichChay` is the template; `ChuyenXe` is what actually ran on a date, and each timetable entry runs at most once per day.
+- **Drivers and attendants are specialisations of staff**, sharing `NhanVien`'s primary key.
 
-These are review items, not confirmed defects:
-
-1. `LoaiThe.SoNgayHieuLuc` is nullable, while its check constraint requires values to be positive when present. Confirm which card products may have no fixed expiry.
-2. `ChuyenXe` requires a bus, driver and attendant, while `LichChay` references the generic `Tuyen` table that allows both BUS and METRO. Confirm that `ChuyenXe` is intentionally bus-only.
-3. `LuotQuetThe` has foreign keys to station and route, but foreign keys alone do not guarantee that the station belongs to the selected route or matches the transport type.
-4. `GiaoDich` records a refund type but has no explicit reference to the original transaction. Decide whether refund traceability is required by the assignment.
-5. Business rules such as balance updates, duplicate validations and transaction consistency need to be enforced by a documented application/SQL mechanism if they are in scope.
-
-Do not change the schema based only on these notes. Compare proposed changes with the assignment requirements and existing diagrams first.
+Diagrams: [ERD](../agm/diagrams/so_do_thuc_the_lien_ket.png) · [relational schema](../agm/diagrams/so_do_quan_he.png).
