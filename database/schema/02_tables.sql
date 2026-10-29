@@ -5,7 +5,14 @@
    Starts from the coursework schema in agm/ with these changes:
    - GiaVe (new): fare rules per transport type, used to compute the
      amount charged for each scan.
-   - GiaoDich.MaGiaoDichGoc (new): links a refund to the top-up it refunds.
+   - GiaoDich.MaGiaoDichGoc (new): links a refund to the top-up it refunds,
+     and a balance received by a replacement card to the balance sent.
+   - GiaoDich.LoaiGiaoDich: CHUYEN_DI / CHUYEN_DEN record a balance moved to
+     a replacement card; they have no payment method.
+   - UuDaiDoiTuong (new): discount per passenger category.
+   - TheVeDienTu.MaTheCu (new): the card a replacement card replaces.
+   - LuotQuetThe.TrangThai (new): journey status, so that a metro journey
+     that was never tapped out can be closed with a penalty fare.
    - TaiXe.HangGPLX: licence classes D1, D2, D (Road Traffic Order and
      Safety Law, in force from 2025-01-01) and E (licences issued earlier).
    - Defaults for balances, lock status and statuses; every constraint is named.
@@ -20,6 +27,20 @@ GO
 
 /* ---------- Passengers and cards ---------- */
 
+-- Discount (percent) per passenger category: on each ride paid from the
+-- wallet, and on monthly passes. A pass is never free (< 100).
+CREATE TABLE UuDaiDoiTuong(
+    NhomDoiTuong          varchar(20)   NOT NULL,
+    TenNhom               nvarchar(50)  NOT NULL,
+    PhanTramGiamVeLuot    tinyint       NOT NULL CONSTRAINT df_UuDaiDoiTuong_VeLuot DEFAULT 0,
+    PhanTramGiamGoiThang  tinyint       NOT NULL CONSTRAINT df_UuDaiDoiTuong_GoiThang DEFAULT 0,
+    CONSTRAINT pk_UuDaiDoiTuong PRIMARY KEY(NhomDoiTuong),
+    CONSTRAINT ck_UuDaiDoiTuong_NhomDoiTuong
+        CHECK(NhomDoiTuong IN ('TIEU_CHUAN', 'HSSV', 'NGUOI_CAO_TUOI')),
+    CONSTRAINT ck_UuDaiDoiTuong_VeLuot   CHECK(PhanTramGiamVeLuot <= 100),
+    CONSTRAINT ck_UuDaiDoiTuong_GoiThang CHECK(PhanTramGiamGoiThang < 100)
+);
+
 CREATE TABLE HanhKhach(
     MaHanhKhach  varchar(10)   NOT NULL,
     HoTen        nvarchar(50)  NOT NULL,
@@ -28,6 +49,8 @@ CREATE TABLE HanhKhach(
     NhomDoiTuong varchar(20)   NOT NULL
         CONSTRAINT df_HanhKhach_NhomDoiTuong DEFAULT 'TIEU_CHUAN',
     CONSTRAINT pk_HanhKhach PRIMARY KEY(MaHanhKhach),
+    CONSTRAINT fk_HanhKhach_UuDaiDoiTuong
+        FOREIGN KEY(NhomDoiTuong) REFERENCES UuDaiDoiTuong(NhomDoiTuong),
     CONSTRAINT ck_HanhKhach_NhomDoiTuong
         CHECK(NhomDoiTuong IN ('TIEU_CHUAN', 'HSSV', 'NGUOI_CAO_TUOI'))
 );
@@ -48,6 +71,7 @@ CREATE TABLE LoaiThe(
 );
 
 -- NgayHetHan: last day the pass is valid; NULL when no pass has been bought.
+-- MaTheCu: for a replacement card, the lost or damaged card it replaces.
 -- SoDuVi is changed only by the stored procedures (see docs/business-rules.md).
 CREATE TABLE TheVeDienTu(
     MaTheDienTu varchar(20)   NOT NULL,
@@ -56,33 +80,42 @@ CREATE TABLE TheVeDienTu(
     BiKhoa      smallint      NOT NULL CONSTRAINT df_TheVeDienTu_BiKhoa DEFAULT 0,
     MaLoaiThe   varchar(20)   NOT NULL,
     MaHanhKhach varchar(10)   NOT NULL,
+    MaTheCu     varchar(20)   NULL,
     CONSTRAINT pk_TheVeDienTu PRIMARY KEY(MaTheDienTu),
     CONSTRAINT fk_TheVeDienTu_LoaiThe   FOREIGN KEY(MaLoaiThe)   REFERENCES LoaiThe(MaLoaiThe),
     CONSTRAINT fk_TheVeDienTu_HanhKhach FOREIGN KEY(MaHanhKhach) REFERENCES HanhKhach(MaHanhKhach),
+    CONSTRAINT fk_TheVeDienTu_TheCu     FOREIGN KEY(MaTheCu)     REFERENCES TheVeDienTu(MaTheDienTu),
+    CONSTRAINT ck_TheVeDienTu_TheCu CHECK(MaTheCu <> MaTheDienTu),
     CONSTRAINT ck_TheVeDienTu_SoDuVi CHECK(SoDuVi >= 0),
     CONSTRAINT ck_TheVeDienTu_BiKhoa CHECK(BiKhoa IN (0, 1))
 );
 
--- MaGiaoDichGoc: for HOAN_TIEN, the top-up being refunded; NULL otherwise.
+-- MaGiaoDichGoc: for HOAN_TIEN, the top-up being refunded; for CHUYEN_DEN,
+--                the CHUYEN_DI it receives; NULL otherwise.
+-- PhuongThucThanhToan: NULL only for balance transfers (CHUYEN_DI, CHUYEN_DEN).
 CREATE TABLE GiaoDich(
     MaGiaoDich          varchar(20)   NOT NULL,
     LoaiGiaoDich        varchar(20)   NOT NULL,
     SoTien              numeric(12,0) NOT NULL,
     ThoiDiemGiaoDich    datetime      NOT NULL,
-    PhuongThucThanhToan varchar(20)   NOT NULL,
+    PhuongThucThanhToan varchar(20)   NULL,
     MaTheDienTu         varchar(20)   NOT NULL,
     MaGiaoDichGoc       varchar(20)   NULL,
     CONSTRAINT pk_GiaoDich PRIMARY KEY(MaGiaoDich),
     CONSTRAINT fk_GiaoDich_TheVeDienTu FOREIGN KEY(MaTheDienTu)   REFERENCES TheVeDienTu(MaTheDienTu),
     CONSTRAINT fk_GiaoDich_GiaoDichGoc FOREIGN KEY(MaGiaoDichGoc) REFERENCES GiaoDich(MaGiaoDich),
     CONSTRAINT ck_GiaoDich_LoaiGiaoDich
-        CHECK(LoaiGiaoDich IN ('NAP_TIEN', 'MUA_GOI_THANG', 'HOAN_TIEN')),
+        CHECK(LoaiGiaoDich IN ('NAP_TIEN', 'MUA_GOI_THANG', 'HOAN_TIEN',
+                               'CHUYEN_DI', 'CHUYEN_DEN')),
     CONSTRAINT ck_GiaoDich_PhuongThucThanhToan
         CHECK(PhuongThucThanhToan IN ('TIEN_MAT', 'VNPAY', 'MOMO', 'NGAN_HANG')),
     CONSTRAINT ck_GiaoDich_SoTien CHECK(SoTien > 0),
+    CONSTRAINT ck_GiaoDich_CoPhuongThuc
+        CHECK((LoaiGiaoDich IN ('CHUYEN_DI', 'CHUYEN_DEN') AND PhuongThucThanhToan IS NULL)
+           OR (LoaiGiaoDich NOT IN ('CHUYEN_DI', 'CHUYEN_DEN') AND PhuongThucThanhToan IS NOT NULL)),
     CONSTRAINT ck_GiaoDich_MaGiaoDichGoc
-        CHECK((LoaiGiaoDich = 'HOAN_TIEN' AND MaGiaoDichGoc IS NOT NULL)
-           OR (LoaiGiaoDich <> 'HOAN_TIEN' AND MaGiaoDichGoc IS NULL))
+        CHECK((LoaiGiaoDich IN ('HOAN_TIEN', 'CHUYEN_DEN') AND MaGiaoDichGoc IS NOT NULL)
+           OR (LoaiGiaoDich NOT IN ('HOAN_TIEN', 'CHUYEN_DEN') AND MaGiaoDichGoc IS NULL))
 );
 
 /* ---------- Transport network and fares ---------- */
@@ -198,6 +231,10 @@ CREATE TABLE ChuyenXe(
 
 /* ---------- Card scans ---------- */
 
+-- TrangThai: DANG_DI     metro journey tapped in, not yet tapped out;
+--            HOAN_THANH  bus scan, or metro journey tapped out;
+--            KHONG_QUET_RA metro journey never tapped out, closed with a
+--                        penalty fare (no exit station).
 CREATE TABLE LuotQuetThe(
     MaLuotQuet      varchar(20)   NOT NULL,
     LoaiPhuongTien  varchar(10)   NOT NULL,
@@ -209,6 +246,7 @@ CREATE TABLE LuotQuetThe(
     MaTheDienTu     varchar(20)   NOT NULL,
     MaTuyen         varchar(10)   NULL,
     MaChuyen        varchar(20)   NULL,
+    TrangThai       varchar(20)   NOT NULL,
     CONSTRAINT pk_LuotQuetThe PRIMARY KEY(MaLuotQuet),
     CONSTRAINT fk_LuotQuetThe_TramVao     FOREIGN KEY(MaTramQuetVao) REFERENCES Tram(MaTram),
     CONSTRAINT fk_LuotQuetThe_TramRa      FOREIGN KEY(MaTramQuetRa)  REFERENCES Tram(MaTram),
@@ -224,6 +262,10 @@ CREATE TABLE LuotQuetThe(
     CONSTRAINT ck_LuotQuetThe_Bus
         CHECK(LoaiPhuongTien = 'METRO' OR (MaChuyen IS NOT NULL AND MaTramQuetRa IS NULL)),
     CONSTRAINT ck_LuotQuetThe_Metro
-        CHECK(LoaiPhuongTien = 'BUS' OR MaChuyen IS NULL)
+        CHECK(LoaiPhuongTien = 'BUS' OR MaChuyen IS NULL),
+    CONSTRAINT ck_LuotQuetThe_TrangThai
+        CHECK((TrangThai = 'HOAN_THANH' AND (LoaiPhuongTien = 'BUS' OR MaTramQuetRa IS NOT NULL))
+           OR (TrangThai IN ('DANG_DI', 'KHONG_QUET_RA')
+               AND LoaiPhuongTien = 'METRO' AND MaTramQuetRa IS NULL))
 );
 GO

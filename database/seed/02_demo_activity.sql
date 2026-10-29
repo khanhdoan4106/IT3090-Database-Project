@@ -15,7 +15,8 @@ GO
 SET NOCOUNT ON;
 
 DECLARE @The1 varchar(20), @The2 varchar(20), @The3 varchar(20),
-        @The4 varchar(20), @The5 varchar(20), @The6 varchar(20),
+        @The4 varchar(20), @The5 varchar(20), @The6 varchar(20), @TheMoi6 varchar(20),
+        @MaChuyen varchar(20),
         @GD varchar(20), @GDNap5 varchar(20), @LQ varchar(20),
         @Tien numeric(12,0), @HetHan date;
 
@@ -70,12 +71,21 @@ EXEC dbo.usp_QuetTheXeBuyt @MaTheDienTu = @The5, @MaChuyen = 'CX20261028001', @M
      @ThoiDiem = '20261028 06:35', @MaLuotQuet = @LQ OUTPUT, @SoTienDaTru = @Tien OUTPUT;
 EXEC dbo.usp_HoanTien @MaGiaoDichGoc = @GDNap5, @ThoiDiem = '20261028 15:00', @MaGiaoDich = @GD OUTPUT;
 
-/* HK006: card reported lost and locked; the balance is kept. */
+/* HK006: card reported lost and locked, then replaced; the balance moves
+   to the new card. */
 EXEC dbo.usp_PhatHanhThe @MaHanhKhach = 'HK006', @MaLoaiThe = 'VE_LUOT', @MaTheDienTu = @The6 OUTPUT;
 EXEC dbo.usp_NapTien @MaTheDienTu = @The6, @SoTien = 30000, @PhuongThucThanhToan = 'TIEN_MAT',
      @ThoiDiem = '20261025 18:00', @MaGiaoDich = @GD OUTPUT;
 EXEC dbo.usp_KhoaThe @MaTheDienTu = @The6, @BiKhoa = 1;
+EXEC dbo.usp_DoiThe @MaTheCu = @The6, @ThoiDiem = '20261027 09:00', @MaTheMoi = @TheMoi6 OUTPUT;
 
 /* The 2026-10-28 trips have finished. */
-UPDATE ChuyenXe SET TrangThai = 'HOAN_THANH' WHERE NgayChay = '20261028';
+EXEC dbo.usp_CapNhatTrangThaiChuyen @MaChuyen = 'CX20261028001', @TrangThaiMoi = 'HOAN_THANH';
+EXEC dbo.usp_CapNhatTrangThaiChuyen @MaChuyen = 'CX20261028002', @TrangThaiMoi = 'HOAN_THANH';
+
+/* Tomorrow's trips are planned from the timetable. */
+EXEC dbo.usp_TaoChuyenXe @MaLich = 'L32D0600', @NgayChay = '20261030', @MaXe = 'XB01',
+     @MaTaiXe = 'NV01', @MaPhuXe = 'NV04', @MaChuyen = @MaChuyen OUTPUT;
+EXEC dbo.usp_TaoChuyenXe @MaLich = 'L09D0630', @NgayChay = '20261030', @MaXe = 'XB03',
+     @MaTaiXe = 'NV03', @MaPhuXe = 'NV06', @MaChuyen = @MaChuyen OUTPUT;
 GO
